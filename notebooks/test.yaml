@@ -1,0 +1,27 @@
+MAIN:
+  - table: lyst_analytics.nc_components_derived_aggregates_cummulative
+  - field: net_commission
+    children:
+      - name: GMV
+        children:
+          - field: AOV
+            formua: "'gross_commission'/'order_count'"
+          - field: order_count            
+            children:
+              - field: order_count_per_conversion
+              - field: conversion_count
+                name: Number of Conversions
+                children:
+                  - field: user_count
+                    name: Number of Users
+                  - field: sessions_per_user
+                    formula: "'session_count'/'user_count'"
+                  - field: lead_conversion_rate
+                    formula: "'lead_generation_count'/'session_count'"
+                  - field: track_conversion_rate
+                    formula: "'conversion_count'/'lead_generation_count'"
+      - field: retain_rate
+        formula: "'net_commissionm'/'gross_commission'"
+      - field: conversion_rate
+        name: CPA Rate
+        formula: "'gross_commission'/'GMV'"

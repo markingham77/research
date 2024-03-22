@@ -1,0 +1,24 @@
+{
+    "tests":[
+        {
+            "name": "gmv_per_order_check",
+            "assert": "'gmv_per_order'=='gmv'/'orders'"
+        },
+        {
+            "name": "orders_are_non_negative",
+            "assert": "'orders'>=0"
+        },
+        {
+          "name": "all_orders_come_from_css",
+          "assert": "'source'==`css`"
+        },
+        {
+            "name": "wgts_sum_to_one",
+            "assert": "'wgts'.sum()==1"
+        },
+        {
+            "name": "wgts_sum_to_one_within_epsilon",
+            "assert": "('wgts'.sum()>0.9999) & ('wgts'.sum()<=1)"
+        }  
+    ]
+}

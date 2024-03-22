@@ -1,0 +1,71 @@
+{% macro region(table) %}
+    {% if table == 'utp' %}
+        {% set prefix = table ~ '.user_' %}
+    {% elif table == 'sessions'  %}
+        {% set prefix = table ~ '.' %}
+    {% endif %}
+    ,CASE
+        WHEN ({{ prefix }}geoip_country) = 'US' then 'US'
+        WHEN ({{ prefix }}geoip_country) = 'GB' then 'GB'
+        WHEN ({{ prefix }}geoip_country) in ('FR','IT','DE','ES') then 'EU'
+        WHEN ({{ prefix }}geoip_country) = 'CA' then 'CA'
+        WHEN ({{ prefix }}geoip_country) = 'AU' then 'AU'
+        WHEN ({{ prefix }}geoip_country is not NULL) then 'RoW'
+        ELSE 'nan'
+    END
+{% endmacro %}
+
+{% macro nc_aggregates() %}
+    count(distinct(ultimate_id)) as user_count,
+    count(distinct(ultimate_session_id)) as session_count,
+    count(distinct(ultimate_session_id))/nullif(count(distinct(ultimate_id)),0) as sessions_per_user,
+    count(distinct(purchase_intent_id)) as lead_generation_count,
+    sum(converted_track) as conversion_count,
+    sum(order_count) as order_count,
+    sum(gross_amount) as GMV,
+    sum(gross_commission) as gross_commission,
+    sum(net_commission) as net_commission
+{% endmacro %}
+
+{% macro nc_derived_aggregates() %}
+    sum(user_count) as user_count,
+    sum(session_count) as session_count,
+    sum(session_count)/nullif(sum(user_count),0) as sessions_per_user,
+    sum(lead_generation_count) as lead_generation_count,
+    sum(lead_generation_count)/nullif(sum(user_count),0) as lead_generation_rate,
+    sum(conversion_count) as conversion_count,
+    sum(conversion_count)/nullif(sum(lead_generation_count),0) as track_conversion_rate,
+    sum(order_count) as order_count,
+    sum(order_count)/nullif(sum(conversion_count),0) as order_count_per_conversion,            
+    sum(GMV) as GMV,
+    sum(GMV)/nullif(sum(order_count),0) as AOV,
+    sum(gross_commission) as gross_commission,
+    sum(net_commission) as net_commission,
+    sum(gross_commission)/nullif(sum(GMV),0) as cpa_rate,
+    sum(net_commission)/nullif(sum(gross_commission),0) as retain_rate
+    {# sum(cpa_rate * nullif(AOV*order_count,0))/nullif(sum(AOV*nullif(order_count,0)),0) as cpa_rate, #}
+    {# sum(retain_rate*nullif(cpa_rate * nullif(AOV*order_count,0),0))/nullif(sum(cpa_rate * nullif(AOV*order_count,0)),0) as retain_rate, #}
+    {# sum(AOV*order_count) as GMV, #}
+{% endmacro %}
+
+{% macro session_traffic_source_grouping() %}
+    CASE
+        WHEN (session_traffic_source) = 'PLA-CO' THEN 'PLA-CO'
+        WHEN (session_traffic_source) like 'PLA-EC' THEN 'PLA-EC'
+        WHEN (session_traffic_source) = 'APP PAID' THEN 'APP PAID'
+        WHEN (session_traffic_source) = 'DIRECT' THEN 'DIRECT'
+        WHEN ((session_traffic_source) IN ('ORGANIC', 'EMAIL', 'SEO',   'SELF REFERRER', 'SOCIAL', 'OTHER SEO', 'REFERRAL', 'WEB TO APP', 'APP INDEXING', 'APP DIRECT - APP INDEXING', 'PUSH')
+        OR (session_traffic_source) IS NULL) THEN 'ORGANIC'
+        WHEN (session_traffic_source) IN ('PAID','OTHER PAID', 'PAID SOCIAL') THEN 'PAID'
+        WHEN (session_traffic_source) = 'CSS' THEN 'CSS'
+    ELSE 'OTHER'
+    END as session_traffic_source_grouping
+{% endmacro %}
+
+{% macro fiscal_year() %}
+    CASE
+        WHEN MONTH(event_timestamp) > 3 AND MONTH(event_timestamp) < 13 THEN YEAR(event_timestamp)+1
+    ELSE
+        YEAR(event_timestamp)        
+    END as FISCAL_YEAR
+{% endmacro %}        
